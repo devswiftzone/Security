@@ -50,7 +50,11 @@ public struct FluentTokenService: TokenServiceProtocol, Sendable {
 
         let ttl = lifetime
             ?? application.security.configuration.tokenLifetimes.lifetime(for: kind)
-        let expiresAt: Date? = ttl > 0 ? Date().addingTimeInterval(ttl) : nil
+        // Always compute expiresAt from ttl, even when negative (already
+        // expired) or zero (expires immediately). "Never expires" is only
+        // expressible by passing lifetime: nil AND configuring a kind with
+        // 0 lifetime in TokenLifetimes (uncommon).
+        let expiresAt: Date? = Date().addingTimeInterval(ttl)
 
         let token = Token(
             userID: userID,

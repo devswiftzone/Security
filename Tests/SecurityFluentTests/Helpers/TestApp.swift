@@ -47,6 +47,7 @@ enum TestApp {
 
     /// Convenience: provides a fresh app to a block and tears it down
     /// afterwards, awaiting the shutdown properly.
+    @discardableResult
     static func withFresh<T>(
         _ block: (Application) async throws -> T
     ) async throws -> T {
