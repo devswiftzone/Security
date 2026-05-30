@@ -27,17 +27,12 @@ public final class User: Model, Content, @unchecked Sendable {
     @ID(key: .id)
     public var id: UUID?
 
-    /// Login email. Stored lowercase for case-insensitive uniqueness.
     @Field(key: "email")
     public var email: String
 
-    /// Whether the user is allowed to authenticate. Inactive users have
-    /// their data preserved but cannot log in.
     @Field(key: "is_active")
     public var isActive: Bool
 
-    /// Optional display name. The Security package itself does not use it
-    /// but it's a near-universal field worth providing out of the box.
     @OptionalField(key: "display_name")
     public var displayName: String?
 
@@ -47,17 +42,17 @@ public final class User: Model, Content, @unchecked Sendable {
     @Timestamp(key: "updated_at", on: .update)
     public var updatedAt: Date?
 
-    /// Soft-delete timestamp. When set, the row is excluded from default
-    /// queries. Use `.withDeleted()` to include soft-deleted rows.
     @Timestamp(key: "deleted_at", on: .delete)
     public var deletedAt: Date?
 
     // MARK: - Relations
 
-    /// One-to-one with `UserPassword`. Optional because the user may
-    /// authenticate via OAuth or other passwordless methods.
     @OptionalChild(for: \.$user)
     public var password: UserPassword?
+
+    /// Roles assigned to this user through the `UserRole` pivot.
+    @Siblings(through: UserRole.self, from: \.$user, to: \.$role)
+    public var roles: [Role]
 
     // MARK: - Init
 
@@ -81,15 +76,21 @@ public final class User: Model, Content, @unchecked Sendable {
 extension User: SecurityUser {
 
     public func roleNames(on db: Database) async throws -> Set<String> {
-        // Concrete implementation lands when Role + UserRole pivot exist.
-        // For now, return an empty set so the model
-        // compiles and conforms to the protocol.
-        []
+        let assigned = try await $roles.query(on: db).all()
+        return Set(assigned.map(\.name))
     }
 
     public func permissions(on db: Database) async throws -> Set<Permission> {
-        // Concrete implementation lands when Permission + RolePermission
-        // pivot exist.
-        []
+        let userRoles = try await $roles.query(on: db).all()
+        guard !userRoles.isEmpty else { return [] }
+        let roleIDs = userRoles.compactMap(\.id)
+
+        let pivots = try await RolePermission.query(on: db)
+            .filter(\.$role.$id ~~ roleIDs)
+            .with(\.$permission)
+            .all()
+
+        let names = pivots.map(\.permission.name)
+        return Set(names.map { Permission($0) })
     }
 }
