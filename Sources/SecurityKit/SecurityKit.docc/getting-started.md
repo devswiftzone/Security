@@ -62,13 +62,13 @@ import SecurityKit
 func routes(_ app: Application) throws {
     // Register
     app.post("auth", "register") { req async throws -> TokenResponse in
-        let dto = try req.content.decode(RegisterDTO.self)
+        let dto = try req.content.decode(RegisterRequest.self)
         return try await req.application.security.auth.register(dto, on: req.db)
     }
 
     // Login
     app.post("auth", "login") { req async throws -> TokenResponse in
-        let dto = try req.content.decode(LoginDTO.self)
+        let dto = try req.content.decode(LoginRequest.self)
         return try await req.application.security.auth.login(dto, on: req.db)
     }
 

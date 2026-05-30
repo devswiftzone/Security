@@ -21,11 +21,11 @@ All modules are re-exported through ``SecurityKit``, so `import SecurityKit` giv
 
 ### Authentication
 - ``AuthServiceProtocol``
-- ``LoginDTO``
-- ``RegisterDTO``
+- ``LoginRequest``
+- ``RegisterRequest``
 - ``TokenResponse``
-- ``RefreshDTO``
-- ``ChangePasswordDTO``
+- ``RefreshRequest``
+- ``ChangePasswordRequest``
 
 ### Authorization
 - ``AuthorizationPolicy``

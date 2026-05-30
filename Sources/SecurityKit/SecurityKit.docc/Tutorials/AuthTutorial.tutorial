@@ -21,11 +21,11 @@
     @Section(title: "Create Auth Routes") {
         @Steps {
             @Step {
-                Add a registration endpoint. It accepts a ``RegisterDTO`` and returns a ``TokenResponse`` with an access and refresh token.
+                Add a registration endpoint. It accepts a ``RegisterRequest`` and returns a ``TokenResponse`` with an access and refresh token.
                 @Code(name: "routes.swift", file: "auth-routes-1.swift")
             }
             @Step {
-                Add a login endpoint. It accepts a ``LoginDTO``, verifies credentials, and returns tokens.
+                Add a login endpoint. It accepts a ``LoginRequest``, verifies credentials, and returns tokens.
                 @Code(name: "routes.swift", file: "auth-routes-2.swift")
             }
             @Step {

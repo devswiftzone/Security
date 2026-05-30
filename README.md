@@ -82,17 +82,17 @@ import SecurityKit
 func routes(_ app: Application) throws {
     // Public
     app.post("auth", "register") { req async throws -> TokenResponse in
-        let dto = try req.content.decode(RegisterDTO.self)
+        let dto = try req.content.decode(RegisterRequest.self)
         return try await req.application.security.auth.register(dto, on: req.db)
     }
 
     app.post("auth", "login") { req async throws -> TokenResponse in
-        let dto = try req.content.decode(LoginDTO.self)
+        let dto = try req.content.decode(LoginRequest.self)
         return try await req.application.security.auth.login(dto, on: req.db)
     }
 
     app.post("auth", "refresh") { req async throws -> TokenResponse in
-        let dto = try req.content.decode(RefreshDTO.self)
+        let dto = try req.content.decode(RefreshRequest.self)
         return try await req.application.security.auth.refresh(dto, on: req.db)
     }
 
@@ -290,7 +290,7 @@ await app.security.useJWT(hmacSecret: "your-very-long-secret-at-least-32-bytes")
 
 // Issue a JWT after password auth
 app.post("auth", "jwt-login") { req async throws -> [String: String] in
-    let dto = try req.content.decode(LoginDTO.self)
+    let dto = try req.content.decode(LoginRequest.self)
     let user = try await req.application.security.users.require(email: dto.email, on: req.db)
     let matches = try await user.verifyPassword(
         dto.password,

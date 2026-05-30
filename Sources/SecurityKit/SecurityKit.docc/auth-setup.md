@@ -9,7 +9,7 @@ The ``SecurityCore/AuthServiceProtocol`` defines the core authentication operati
 ### Register a User
 
 ```swift
-let dto = RegisterDTO(
+let dto = RegisterRequest(
     email: "user@example.com",
     password: "securePassword123"
 )
@@ -21,7 +21,7 @@ let response = try await req.application.security.auth.register(dto, on: req.db)
 ### Login
 
 ```swift
-let dto = LoginDTO(
+let dto = LoginRequest(
     email: "user@example.com",
     password: "securePassword123"
 )
@@ -31,7 +31,7 @@ let response = try await req.application.security.auth.login(dto, on: req.db)
 ### Token Refresh
 
 ```swift
-let dto = RefreshDTO(refreshToken: "...")
+let dto = RefreshRequest(refreshToken: "...")
 let response = try await req.application.security.auth.refresh(dto, on: req.db)
 ```
 
@@ -39,7 +39,7 @@ let response = try await req.application.security.auth.refresh(dto, on: req.db)
 
 ```swift
 let user = try req.security.require(User.self)
-let dto = ChangePasswordDTO(
+let dto = ChangePasswordRequest(
     currentPassword: "oldPassword123",
     newPassword: "newPassword456"
 )
