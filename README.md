@@ -1,8 +1,8 @@
-# Security
+# SecurityKit
 
-A reusable, modular security package for Vapor 4 applications. Provides RBAC (Role-Based Access Control), authentication, authorization, and token management out of the box, accessible through `app.security.*`.
+A modular, reusable security package for [Vapor 4](https://vapor.codes) applications. Provides RBAC (Role-Based Access Control), authentication, authorization, and token management — all accessible through `app.security.*` and `req.security.*`.
 
-[![Swift 5.10+](https://img.shields.io/badge/Swift-5.10+-orange.svg)](https://swift.org)
+[![Swift 6](https://img.shields.io/badge/Swift-6-orange.svg)](https://swift.org)
 [![Vapor 4](https://img.shields.io/badge/Vapor-4-blue.svg)](https://vapor.codes)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
@@ -10,24 +10,25 @@ A reusable, modular security package for Vapor 4 applications. Provides RBAC (Ro
 
 - 🔐 **RBAC** — Users, roles, permissions with N–M relationships
 - 🔑 **Authentication** — Email/password login with bcrypt (Argon2 pluggable)
-- 🎫 **Token management** — Opaque tokens with hashing, expiration, and revocation
-- 🛡️ **Authorization** — Composable policies, middleware, and `require(permission:)` API
-- 📦 **Modular** — Use only what you need: `SecurityCore`, `SecurityFluent`, `SecurityJWT`
-- 🔌 **Extensible** — Protocol-based services, custom hashers, event hooks
+- 🎫 **Token management** — Opaque tokens with SHA-256 storage, expiration, revocation, and rotation
+- 🛡️ **Authorization** — Composable policies with `&&`, `||`, `!` operators
+- 📡 **Event bus** — Subscribe to login, logout, role changes, and more
+- 🪪 **Optional JWT** — Stateless tokens via `SecurityJWT` for microservices
+- 📦 **Modular** — Use only what you need
 - 🗄️ **Versioned migrations** — Safe upgrades across package versions
 - ⚡ **Vapor-native** — Integrates via `app.security.*` and `req.security.*`
 
 ## Requirements
 
-- Swift 5.10+
+- Swift 6.0+
 - Vapor 4.92+
+- Fluent 4.9+ (for the Fluent backend)
 - macOS 13+ / Linux
-- Fluent 4.9+ (for `SecurityFluent`)
-- A Fluent-compatible database driver (PostgreSQL recommended)
+- A Fluent-compatible database driver (PostgreSQL recommended for production)
 
 ## Installation
 
-Add the package to your `Package.swift`:
+Add to your `Package.swift`:
 
 ```swift
 dependencies: [
@@ -37,50 +38,46 @@ targets: [
     .executableTarget(
         name: "App",
         dependencies: [
-            .product(name: "Security", package: "Security"),
-            // Or import only what you need:
-            // .product(name: "SecurityCore", package: "Security"),
-            // .product(name: "SecurityFluent", package: "Security"),
+            .product(name: "SecurityKit", package: "Security"),
         ]
     )
 ]
 ```
 
-## Quick Start
+## Quick start
 
-### 1. Configure in `configure.swift`
+### 1. Configure
 
 ```swift
 import Vapor
 import Fluent
 import FluentPostgresDriver
-import Security
+import SecurityKit
 
 public func configure(_ app: Application) async throws {
     // Database
     app.databases.use(.postgres(/* ... */), as: .psql)
 
-    // Security configuration
+    // Security setup — sensible defaults, customize via configuration
     app.security.configuration = .init(
-        tokenLifetime: .hours(2),
-        refreshTokenLifetime: .days(30),
-        passwordMinLength: 12
+        tokenLifetimes: .init(
+            access: 30 * 60,           // 30 min
+            refresh: 60 * 60 * 24 * 14 // 14 days
+        ),
+        passwordPolicy: .init(minLength: 14)
     )
 
-    // Register migrations
-    app.security.migrations.add(to: app.migrations)
-    try await app.autoMigrate()
+    app.security.useFluent()
 
-    // Routes
-    try routes(app)
+    try await app.autoMigrate()
 }
 ```
 
-### 2. Add authentication routes
+### 2. Routes
 
 ```swift
 import Vapor
-import Security
+import SecurityKit
 
 func routes(_ app: Application) throws {
     // Public
@@ -94,76 +91,100 @@ func routes(_ app: Application) throws {
         return try await req.application.security.auth.login(dto, on: req.db)
     }
 
-    // Protected
-    let authenticated = app.grouped(BearerTokenMiddleware())
+    app.post("auth", "refresh") { req async throws -> TokenResponse in
+        let dto = try req.content.decode(RefreshDTO.self)
+        return try await req.application.security.auth.refresh(dto, on: req.db)
+    }
 
-    authenticated.get("me") { req async throws -> User in
+    // Protected (any authenticated user)
+    let authed = app.grouped(BearerTokenMiddleware())
+
+    authed.get("me") { req async throws -> User in
         try req.security.require(User.self)
     }
 
+    authed.post("auth", "logout") { req async throws -> HTTPStatus in
+        let user = try req.security.require(User.self)
+        try await req.application.security.auth.logout(user, on: req.db)
+        return .noContent
+    }
+
     // Permission-gated
-    let admin = authenticated.grouped(RequirePermission("users.delete"))
+    let admin = authed.grouped(PermissionMiddleware("users.delete"))
     admin.delete("users", ":id") { req async throws -> HTTPStatus in
-        // ...
+        guard let id = req.parameters.get("id", as: UUID.self) else {
+            throw Abort(.badRequest)
+        }
+        let user = try await req.application.security.users.require(id: id, on: req.db)
+        try await req.application.security.users.delete(user, on: req.db)
         return .noContent
     }
 }
 ```
 
-### 3. Seed initial roles and permissions
+### 3. Seed roles and permissions
 
 ```swift
-let adminRole = try await app.security.roles.create(name: "admin", on: app.db)
-try await app.security.permissions.create(name: "users.delete", on: app.db)
-try await app.security.roles.attach(permission: "users.delete", to: adminRole, on: app.db)
+let admin = try await app.security.roles.create(
+    name: "admin",
+    description: "Full access",
+    on: app.db
+)
+
+try await app.security.permissions.register([
+    "users.read",
+    "users.write",
+    "users.delete",
+], on: app.db)
+
+try await app.security.roles.grant("users.delete", to: admin, on: app.db)
+
+// Attach the role to a user
+let user = try await app.security.users.require(email: "asiel@example.com", on: app.db)
+try await app.security.roles.attach(admin, to: user, on: app.db)
 ```
 
 ## Modules
 
-| Module | Description | Depends on |
-|---|---|---|
-| `Security` | Umbrella — re-exports everything | All below |
-| `SecurityCore` | Protocols, DTOs, errors, policies | Vapor |
-| `SecurityFluent` | Fluent models, migrations, services | SecurityCore, Fluent |
-| `SecurityJWT` | JWT-based auth service (optional) | SecurityCore, JWT |
+| Module | Description |
+|---|---|
+| `SecurityKit` | Umbrella — re-exports all modules below |
+| `SecurityCore` | Protocols, DTOs, errors, policies, event bus (storage-agnostic) |
+| `SecurityFluent` | Fluent backend: models, migrations, services, middleware |
+| `SecurityJWT` | Optional JWT-based auth (stateless tokens) |
 
-Import only what you need to keep your binary lean.
+Import the umbrella for everything, or pick individual modules to keep binaries lean.
 
-## Architecture
+## Authorization
 
-```
-┌─────────────────────────────────────┐
-│       Your Vapor Application        │
-├─────────────────────────────────────┤
-│       app.security.* API            │
-├──────────┬────────────┬─────────────┤
-│   Auth   │    RBAC    │   Tokens    │
-├──────────┴────────────┴─────────────┤
-│      SecurityCore (protocols)       │
-├─────────────────────────────────────┤
-│  SecurityFluent    │  SecurityJWT   │
-│  (Postgres/MySQL)  │  (stateless)   │
-└─────────────────────────────────────┘
-```
-
-## Usage
-
-### Checking permissions in a route
+### Inline checks in handlers
 
 ```swift
 app.get("posts", ":id") { req async throws -> Post in
     try await req.security.require(permission: "posts.read")
     // ...
 }
+
+// Non-throwing branching
+app.get("dashboard") { req async throws -> View in
+    if await req.security.can("admin.access") {
+        return try await renderAdminDashboard(req)
+    }
+    return try await renderUserDashboard(req)
+}
 ```
 
-### Checking roles
+### Composable policies
 
 ```swift
-try await req.security.require(role: "admin")
+let policy = (RequireRole("admin") || RequirePermission("users.edit"))
+          && !RequireRole("suspended")
+
+app.grouped(policy.middleware())
+   .patch("users", ":id") { req in /* ... */ }
 ```
 
-### Custom authorization policies
+### Custom policies
 
 ```swift
 struct CanEditPost: AuthorizationPolicy {
@@ -173,33 +194,128 @@ struct CanEditPost: AuthorizationPolicy {
         let user = try req.auth.require(User.self)
         let post = try await Post.find(postID, on: req.db)
         return post?.authorID == user.id
-            || (try await user.permissions(on: req.db)).contains("posts.edit.any")
+            || (try await user.permissions(on: req.db))
+                .contains(Permission("posts.edit.any"))
     }
 }
+
+app.patch("posts", ":id") { req async throws -> Post in
+    let postID = try req.parameters.require("id", as: UUID.self)
+    try await req.security.require(CanEditPost(postID: postID))
+    // ...
+}
 ```
 
-### Custom password hasher
+## Events
+
+Subscribe to security events for auditing, metrics, or notifications:
 
 ```swift
-struct Argon2Hasher: PasswordHasher {
+await app.security.events.on("auth.login.failed") { event in
+    if case .loginFailed(let email, let ip, let reason) = event {
+        app.logger.warning("Failed login: \(email) from \(ip ?? "?") — \(reason)")
+    }
+}
+
+// Or subscribe to a whole namespace
+await app.security.events.on(prefix: "token.*") { event in
+    app.logger.info("\(event.name)")
+}
+
+// All events
+await app.security.events.onAny { event in
+    auditWriter.write(event)
+}
+```
+
+Available events: `user.registered`, `user.activated`, `user.deactivated`, `user.deleted`, `auth.login.succeeded`, `auth.login.failed`, `auth.logout.all`, `password.changed`, `password.reset.requested`, `token.issued`, `token.revoked`, `token.reuse_detected`, `role.assigned`, `role.revoked`, `permission.granted`, `permission.revoked`.
+
+## Configuration
+
+All options are tunable via `SecurityConfiguration`:
+
+```swift
+app.security.configuration = .init(
+    tokenLifetimes: .init(
+        access: 30 * 60,
+        refresh: 60 * 60 * 24 * 14,
+        api: 60 * 60 * 24 * 365,
+        oneTime: 60 * 15
+    ),
+    passwordPolicy: .init(
+        minLength: 14,
+        maxLength: 128,
+        requireMixedCase: false,
+        requireDigit: false,
+        requireSymbol: false
+    ),
+    refreshRotation: .init(
+        enabled: true,
+        detectReuse: true
+    ),
+    loginThrottle: .init(
+        enabled: true,
+        maxAttempts: 5,
+        window: 60 * 15,
+        lockoutDuration: 60 * 15
+    ),
+    bcryptCost: 12
+)
+```
+
+Defaults follow current OWASP and NIST SP 800-63B guidance (length over composition for passwords; refresh token rotation with reuse detection).
+
+## Custom password hasher
+
+```swift
+struct Argon2Hasher: SecurityPasswordHasher {
+    let algorithm = "argon2id"
+
     func hash(_ password: String) throws -> String { /* ... */ }
     func verify(_ password: String, against hash: String) throws -> Bool { /* ... */ }
+    func needsRehash(_ hash: String) -> Bool { /* ... */ }
 }
 
-app.security.passwordHasher = Argon2Hasher()
+app.security.useFluent(passwordHasher: Argon2Hasher())
 ```
 
-### Subscribing to security events
+## JWT (optional)
+
+For microservices or stateless validation, use `SecurityJWT` alongside `SecurityFluent`:
 
 ```swift
-app.security.events.on(.loginFailed) { event in
-    app.logger.warning("Failed login for \(event.email) from \(event.ip ?? "unknown")")
+import SecurityKit  // already includes SecurityJWT
+
+await app.security.useJWT(hmacSecret: "your-very-long-secret-at-least-32-bytes")
+
+// Issue a JWT after password auth
+app.post("auth", "jwt-login") { req async throws -> [String: String] in
+    let dto = try req.content.decode(LoginDTO.self)
+    let user = try await req.application.security.users.require(email: dto.email, on: req.db)
+    let matches = try await user.verifyPassword(
+        dto.password,
+        using: req.application.security.passwordHasher,
+        on: req.db
+    )
+    guard matches else { throw SecurityError.invalidCredentials }
+
+    let roles = try await user.roleNames(on: req.db)
+    let jwt = req.application.security.jwt(issuer: "api.example.com")
+    let token = try await jwt.issue(
+        userID: user.id!,
+        email: user.email,
+        kind: .access,
+        roles: Array(roles)
+    )
+    return ["token": token]
 }
 ```
 
-## Database Schema
+**JWT vs. opaque tokens trade-off:** JWTs validate without DB lookups (faster, statelessly verifiable across services) but cannot be revoked until expiry. Use short TTLs (15–30 min) for access tokens. Combine with opaque refresh tokens from `SecurityFluent` for the best of both worlds.
 
-All tables are prefixed with `security_` to avoid collisions:
+## Database schema
+
+All tables are prefixed `security_` to avoid collisions with consumer schemas:
 
 - `security_users`
 - `security_user_passwords`
@@ -209,36 +325,31 @@ All tables are prefixed with `security_` to avoid collisions:
 - `security_role_permissions`
 - `security_tokens`
 
-See [docs/SCHEMA.md](docs/SCHEMA.md) for the full ERD.
+Migrations are versioned (`Security_V1_CreateUsers`, etc.) and applied via:
 
-## Security Considerations
+```swift
+app.security.migrations.add(to: app.migrations)
+// or
+app.security.useFluent()  // registers them automatically
+```
 
-- **Passwords** are hashed with bcrypt (cost 12) by default. Argon2id is pluggable.
-- **Tokens** are stored as SHA-256 hashes; plain values are returned only at creation.
-- **Refresh token rotation** is enabled by default with reuse detection.
-- **Rate limiting** on login is enforced at 5 attempts / 15 min per IP+email.
-- This package follows [OWASP ASVS Level 2](https://owasp.org/www-project-application-security-verification-standard/) where applicable.
+## Security model
 
-Found a vulnerability? Please email security@devswiftzone.com instead of opening a public issue.
+- **Passwords** are hashed with bcrypt (cost 12 by default). The `algorithm` is stored alongside the hash to enable transparent migration to newer algorithms (Argon2id) on the next successful login.
+- **Tokens** are 256-bit CSPRNG values, stored as SHA-256 hashes in the DB. The plaintext is returned to the client only at issuance. A stolen DB dump yields no usable tokens.
+- **Refresh tokens** rotate on use. Replaying a consumed refresh token triggers reuse detection: all of the user's tokens are revoked and a `token.reuse_detected` event is emitted.
+- **Login failures** report a single `invalidCredentials` error to clients regardless of cause (unknown email vs. wrong password) to prevent user enumeration. Audit-level reasons go to the event bus.
+- **Password changes** require the current password (defense against stolen session tokens) and revoke all of the user's active tokens.
 
-## Roadmap
-
-- [ ] OAuth2 / OpenID Connect provider
-- [ ] WebAuthn / passkeys
-- [ ] MFA (TOTP)
-- [ ] Audit log target
-- [ ] Redis-backed token store
-- [ ] HIBP password breach check
-
-## Contributing
-
-Contributions welcome. Please open an issue first to discuss substantial changes.
+## Development
 
 ```bash
 git clone https://github.com/devswiftzone/Security.git
 cd Security
 swift test
 ```
+
+The test suite runs in-memory with SQLite (no setup required) and uses bcrypt cost 4 to stay fast.
 
 ## License
 
