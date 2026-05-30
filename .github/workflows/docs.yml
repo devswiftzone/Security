@@ -18,13 +18,19 @@ concurrency:
 
 jobs:
   docs:
-    runs-on: macos-14
+    runs-on: macos-15
     steps:
       - uses: actions/checkout@v4
       - name: Setup Swift
         uses: swift-actions/setup-swift@v3
         with:
           swift-version: "6.3.0"
+      - name: Resolve dependencies
+        run: swift package resolve
+      - name: Patch swift-configuration for Swift 6 Foundation
+        run: |
+          sed -i '' 's/fileContents!\.bytes/fileContents!.withUnsafeBytes { RawSpan(_unsafeBytes: $0) }/g' \
+            .build/checkouts/swift-configuration/Sources/Configuration/Providers/Files/FileProvider.swift
       - name: Build DocC
         run: |
           swift build \
