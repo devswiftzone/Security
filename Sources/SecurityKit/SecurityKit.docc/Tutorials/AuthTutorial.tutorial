@@ -1,0 +1,96 @@
+@Tutorial(time: 30) {
+    @Intro(title: "Adding Authentication to Your Vapor App") {
+        Add user registration, login, and token management to your Vapor application using SecurityKit.
+
+        @Image(source: auth-flow.svg, alt: "Authentication flow diagram")
+    }
+
+    @Section(title: "Configure the Package") {
+        @Steps {
+            @Step {
+                Open your `Package.swift` and add the dependency:
+                @Code(name: "Package.swift", file: "add-dependency.swift")
+            }
+            @Step {
+                Create or update `configure.swift` with security setup:
+                @Code(name: "configure.swift", file: "configure-security.swift")
+            }
+        }
+    }
+
+    @Section(title: "Create Auth Routes") {
+        @Steps {
+            @Step {
+                Create the register endpoint. This accepts a ``RegisterDTO`` and returns a ``TokenResponse``.
+                @Code(name: "routes.swift", file: "auth-routes.swift")
+            }
+            @Step {
+                Create the login endpoint. This accepts a ``LoginDTO`` and validates credentials.
+                @Code(name: "routes.swift", file: "auth-routes.swift")
+            }
+            @Step {
+                Protect routes with ``BearerTokenMiddleware``. Only requests with a valid token can access these.
+                @Code(name: "routes.swift", file: "auth-routes.swift")
+            }
+        }
+    }
+
+    @Section(title: "Verify It Works") {
+        @Steps {
+            @Step {
+                Register a new user:
+                @Code(name: "Terminal", file: "curl-register.sh")
+            }
+            @Step {
+                Login with the registered credentials and save the token:
+                @Code(name: "Terminal", file: "curl-login.sh")
+            }
+            @Step {
+                Use the access token to access protected routes:
+                @Code(name: "Terminal", file: "curl-protected.sh")
+            }
+        }
+    }
+
+    @Assessments {
+        @MultipleChoice {
+            Which middleware protects routes with Bearer token authentication?
+
+            @Choice("BearerTokenMiddleware", isCorrect: true) {
+                @Justification {
+                    This middleware validates the Bearer token from the Authorization header.
+                }
+            }
+            @Choice("RequirePermission", isCorrect: false) {
+                @Justification {
+                    Permission middleware checks for specific permissions, not token validity.
+                }
+            }
+            @Choice("RoleMiddleware", isCorrect: false) {
+                @Justification {
+                    Role middleware checks for specific roles, not token validity.
+                }
+            }
+        }
+
+        @MultipleChoice {
+            What does the ``AuthServiceProtocol.register(_:on:)`` method return?
+
+            @Choice("TokenResponse", isCorrect: true) {
+                @Justification {
+                    Register returns a TokenResponse containing both access and refresh tokens.
+                }
+            }
+            @Choice("User", isCorrect: false) {
+                @Justification {
+                    The user object is not returned directly; tokens are issued immediately.
+                }
+            }
+            @Choice("HTTPStatus", isCorrect: false) {
+                @Justification {
+                    A status code is not returned; tokens are returned upon successful registration.
+                }
+            }
+        }
+    }
+}

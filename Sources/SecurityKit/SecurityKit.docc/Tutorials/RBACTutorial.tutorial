@@ -1,0 +1,109 @@
+@Tutorial(time: 45) {
+    @Intro(title: "Setting Up Role-Based Access Control") {
+        Add roles, permissions, and authorization policies to protect your Vapor application resources.
+
+        @Image(source: rbac-diagram.svg, alt: "RBAC diagram showing the relationship between users, roles, and permissions")
+    }
+
+    @Section(title: "Create Roles and Permissions") {
+        @Steps {
+            @Step {
+                Create the roles your app needs (admin, editor, viewer):
+                @Code(name: "seed.swift", file: "seed-roles.swift")
+            }
+            @Step {
+                Create the permissions your app needs:
+                @Code(name: "seed.swift", file: "seed-roles.swift")
+            }
+            @Step {
+                Attach permissions to roles:
+                @Code(name: "seed.swift", file: "seed-roles.swift")
+            }
+            @Step {
+                Assign roles to users:
+                @Code(name: "seed.swift", file: "seed-roles.swift")
+            }
+        }
+    }
+
+    @Section(title: "Protect Routes with Middleware") {
+        @Steps {
+            @Step {
+                Use ``RequirePermission`` middleware to gate routes by permission:
+                @Code(name: "routes.swift", file: "rbac-routes.swift")
+            }
+            @Step {
+                Use ``RequireRole`` to check for specific roles:
+                @Code(name: "routes.swift", file: "rbac-routes.swift")
+            }
+            @Step {
+                Use the helper methods on `req.security` for ad-hoc checks:
+                @Code(name: "routes.swift", file: "rbac-routes.swift")
+            }
+        }
+    }
+
+    @Section(title: "Create a Custom Authorization Policy") {
+        @Steps {
+            @Step {
+                Define a policy that checks if a user owns a resource:
+                @Code(name: "policies.swift", file: "custom-policy.swift")
+            }
+            @Step {
+                Use the policy in your route handler:
+                @Code(name: "routes.swift", file: "custom-policy.swift")
+            }
+        }
+    }
+
+    @Section(title: "Compose Policies") {
+        @Steps {
+            @Step {
+                Combine policies using `&&` and `||` operators:
+                @Code(name: "routes.swift", file: "compose-policies.swift")
+            }
+        }
+    }
+
+    @Assessments {
+        @MultipleChoice {
+            What's the difference between a Role and a Permission?
+
+            @Choice("A role is a group of permissions; a permission is a fine-grained access right", isCorrect: true) {
+                @Justification {
+                    Roles group multiple permissions together for easier management.
+                }
+            }
+            @Choice("They are the same thing with different names", isCorrect: false) {
+                @Justification {
+                    Roles and permissions serve different purposes in RBAC.
+                }
+            }
+            @Choice("A permission is a group of roles", isCorrect: false) {
+                @Justification {
+                    That's backwards — roles group permissions, not the other way around.
+                }
+            }
+        }
+
+        @MultipleChoice {
+            Which protocol should you implement for custom authorization logic?
+
+            @Choice("AuthorizationPolicy", isCorrect: true) {
+                @Justification {
+                    Implement ``AuthorizationPolicy`` with an `evaluate(_:)` method.
+                }
+            }
+            @Choice("AuthServiceProtocol", isCorrect: false) {
+                @Justification {
+                    That's for authentication (login, register), not authorization.
+                }
+            }
+            @Choice("SecurityUser", isCorrect: false) {
+                @Justification {
+                    That's for user model conformance, not authorization logic.
+                }
+            }
+        }
+    }
+}

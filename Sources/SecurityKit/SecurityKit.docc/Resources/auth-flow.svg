@@ -1,0 +1,19 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 500" font-family="SF Pro,Helvetica Neue,Arial,sans-serif">
+  <rect width="800" height="500" fill="#f5f5f7"/>
+  <text x="400" y="40" text-anchor="middle" font-size="20" font-weight="bold" fill="#1d1d1f">Authentication Flow</text>
+  <rect x="300" y="70" width="200" height="50" rx="8" fill="#0071e3"/>
+  <text x="400" y="100" text-anchor="middle" font-size="14" fill="#fff" font-weight="bold">Register</text>
+  <rect x="300" y="150" width="200" height="50" rx="8" fill="#0071e3"/>
+  <text x="400" y="180" text-anchor="middle" font-size="14" fill="#fff" font-weight="bold">Login</text>
+  <rect x="300" y="230" width="200" height="50" rx="8" fill="#0071e3"/>
+  <text x="400" y="260" text-anchor="middle" font-size="14" fill="#fff" font-weight="bold">Token Issued</text>
+  <rect x="300" y="310" width="200" height="50" rx="8" fill="#34c759"/>
+  <text x="400" y="340" text-anchor="middle" font-size="14" fill="#fff" font-weight="bold">BearerTokenMiddleware</text>
+  <rect x="300" y="390" width="200" height="50" rx="8" fill="#ff9500"/>
+  <text x="400" y="420" text-anchor="middle" font-size="14" fill="#fff" font-weight="bold">Protected Routes</text>
+  <line x1="400" y1="120" x2="400" y2="150" stroke="#86868b" stroke-width="2" marker-end="url(#arrow)"/>
+  <line x1="400" y1="200" x2="400" y2="230" stroke="#86868b" stroke-width="2" marker-end="url(#arrow)"/>
+  <line x1="400" y1="280" x2="400" y2="310" stroke="#86868b" stroke-width="2" marker-end="url(#arrow)"/>
+  <line x1="400" y1="360" x2="400" y2="390" stroke="#86868b" stroke-width="2" marker-end="url(#arrow)"/>
+  <defs><marker id="arrow" viewBox="0 0 10 10" refX="5" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M 0 0 L 10 5 L 0 10 z" fill="#86868b"/></marker></defs>
+</svg>

@@ -1,0 +1,23 @@
+# Tutorials
+
+@Tutorials(name: "SecurityKit Tutorials") {
+    @Intro(title: "Learn SecurityKit") {
+        Follow these step-by-step tutorials to integrate authentication and authorization into your Vapor application.
+    }
+
+    @Chapter(name: "Authentication") {
+        Add user registration, login, and token management to your Vapor app.
+
+        @Image(source: auth-flow.svg, alt: "Authentication flow diagram showing register, login, token refresh, and logout")
+
+        @TutorialReference(tutorial: "doc:AuthTutorial")
+    }
+
+    @Chapter(name: "Role-Based Access Control") {
+        Set up roles, permissions, and authorization policies to protect your routes.
+
+        @Image(source: rbac-diagram.svg, alt: "RBAC diagram showing users, roles, permissions relationships")
+
+        @TutorialReference(tutorial: "doc:RBACTutorial")
+    }
+}
