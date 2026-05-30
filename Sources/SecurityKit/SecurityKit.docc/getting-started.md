@@ -36,15 +36,14 @@ public func configure(_ app: Application) async throws {
     // Database setup
     app.databases.use(.postgres(...), as: .psql)
 
-    // Security configuration
+    // Security configuration (optional — shown here to override defaults)
     app.security.configuration = .init(
-        tokenLifetime: .hours(2),
-        refreshTokenLifetime: .days(30),
-        passwordMinLength: 12
+        tokenLifetimes: .init(access: 2 * 60 * 60, refresh: 30 * 24 * 60 * 60),
+        passwordPolicy: .init(minLength: 12)
     )
 
-    // Register migrations
-    app.security.migrations.add(to: app.migrations)
+    // Register password hasher, token generator, and migrations
+    app.security.useFluent()
     try await app.autoMigrate()
 
     // Routes

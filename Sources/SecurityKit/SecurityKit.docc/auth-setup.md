@@ -11,11 +11,10 @@ The ``SecurityCore/AuthServiceProtocol`` defines the core authentication operati
 ```swift
 let dto = RegisterDTO(
     email: "user@example.com",
-    password: "securePassword123",
-    name: "John Doe"
+    password: "securePassword123"
 )
-let response = try await req.security.auth.register(dto, on: req.db)
-// response.token -> access token
+let response = try await req.application.security.auth.register(dto, on: req.db)
+// response.accessToken -> access token
 // response.refreshToken -> refresh token
 ```
 
@@ -26,24 +25,25 @@ let dto = LoginDTO(
     email: "user@example.com",
     password: "securePassword123"
 )
-let response = try await req.security.auth.login(dto, on: req.db)
+let response = try await req.application.security.auth.login(dto, on: req.db)
 ```
 
 ### Token Refresh
 
 ```swift
 let dto = RefreshDTO(refreshToken: "...")
-let response = try await req.security.auth.refresh(dto, on: req.db)
+let response = try await req.application.security.auth.refresh(dto, on: req.db)
 ```
 
 ### Change Password
 
 ```swift
+let user = try req.security.require(User.self)
 let dto = ChangePasswordDTO(
     currentPassword: "oldPassword123",
     newPassword: "newPassword456"
 )
-try await req.security.auth.changePassword(dto, on: req.db)
+try await req.application.security.auth.changePassword(dto, for: user, on: req.db)
 ```
 
 ## Password Hashing
@@ -51,8 +51,8 @@ try await req.security.auth.changePassword(dto, on: req.db)
 By default, passwords are hashed with bcrypt (cost 12). You can provide a custom hasher:
 
 ```swift
-struct Argon2Hasher: PasswordHasher {
-    var algorithm: PasswordHasherAlgorithm { .argon2 }
+struct Argon2Hasher: SecurityPasswordHasher {
+    var algorithm: String { "argon2id" }
 
     func hash(_ password: String) throws -> String { ... }
     func verify(_ password: String, against hash: String) throws -> Bool { ... }
@@ -66,11 +66,12 @@ app.security.passwordHasher = Argon2Hasher()
 Tokens are automatically issued on registration and login. The ``SecurityCore/TokenServiceProtocol`` provides direct access:
 
 ```swift
-// Issue a token
-let token = try await req.security.tokens.issue(for: user, on: req.db)
+// Issue an access token
+let (plaintext, _) = try await req.application.security.tokens
+    .issue(kind: .access, for: user, lifetime: nil, on: req.db)
 
-// Revoke all user tokens
-try await req.security.tokens.revokeAll(for: user, on: req.db)
+// Revoke all tokens for a user (e.g. on password change)
+try await req.application.security.tokens.revokeAll(for: user, kind: nil, on: req.db)
 ```
 
 ## Security Events
@@ -78,12 +79,16 @@ try await req.security.tokens.revokeAll(for: user, on: req.db)
 Subscribe to authentication events:
 
 ```swift
-app.security.events.on(.loginFailed) { event in
-    app.logger.warning("Failed login for \(event.email) from \(event.ip ?? "unknown")")
+await app.security.events.on("auth.login.failed") { event in
+    if case .loginFailed(let email, let ip, _) = event {
+        app.logger.warning("Failed login for \(email) from \(ip ?? "unknown")")
+    }
 }
 
-app.security.events.on(.userRegistered) { event in
-    app.logger.info("New user registered: \(event.email)")
+await app.security.events.on("user.registered") { event in
+    if case .userRegistered(let ctx) = event {
+        app.logger.info("New user registered: \(ctx.email)")
+    }
 }
 ```
 

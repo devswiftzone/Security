@@ -15,15 +15,4 @@ func routes(_ app: Application) throws {
     adminRoutes.get("admin", "dashboard") { req async throws -> String in
         return "Welcome to the admin dashboard"
     }
-
-    authenticated.get("posts", ":id") { req async throws -> Post in
-        try await req.security.require(permission: "posts.read")
-
-        let canEdit = await req.security.can("posts.update")
-        if canEdit {
-            // Show edit button
-        }
-
-        fatalError("implement")
-    }
 }

@@ -61,7 +61,7 @@ public final class User: Model, Content, @unchecked Sendable {
     public init(
         id: UUID? = nil,
         email: String,
-        isActive: Bool = true,
+        isActive: Bool = false,
         displayName: String? = nil
     ) {
         self.id = id

@@ -19,7 +19,4 @@ func seedRolesAndPermissions(app: Application) async throws {
         try await app.security.roles.attach(permission: perm, to: editorRole, on: app.db)
     }
     try await app.security.roles.attach(permission: "posts.read", to: viewerRole, on: app.db)
-
-    let user = try await app.security.users.find(email: "admin@example.com", on: app.db)
-    try await app.security.roles.assign(role: adminRole, to: user, on: app.db)
 }

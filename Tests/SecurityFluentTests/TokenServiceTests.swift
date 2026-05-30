@@ -26,7 +26,7 @@ struct TokenServiceTests {
         email: String = "tokens@example.com"
     ) async throws -> User {
         let response = try await app.security.auth.register(
-            RegisterDTO(email: email, password: "correcthorsebatterystaple"),
+            RegisterRequest(email: email, password: "correcthorsebatterystaple"),
             on: app.db
         )
         return try await app.security.users.require(id: response.userID!, on: app.db)

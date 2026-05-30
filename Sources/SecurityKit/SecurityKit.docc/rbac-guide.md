@@ -38,7 +38,7 @@ try await app.security.roles.assign(role: role, to: user, on: app.db)
 ```swift
 let adminGroup = app.grouped(
     BearerTokenMiddleware(),
-    RequirePermission("users.delete")
+    PermissionMiddleware("users.delete")
 )
 adminGroup.delete("users", ":id") { req async throws -> HTTPStatus in
     // Only users with "users.delete" permission can access
@@ -63,7 +63,7 @@ app.get("admin") { req async throws -> String in
 ### Check without throwing
 
 ```swift
-let canDelete = try await req.security.has(permission: "posts.delete")
+let canDelete = await req.security.can("posts.delete")
 if canDelete { ... }
 ```
 

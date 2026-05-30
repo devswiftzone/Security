@@ -21,7 +21,7 @@ struct AuthServiceTests {
     @MainActor
     func registerCreatesUserAndTokens() async throws {
         try await TestApp.withFresh { app in
-            let dto = RegisterDTO(
+            let dto = RegisterRequest(
                 email: "asiel@example.com",
                 password: "correcthorsebatterystaple"
             )
@@ -55,7 +55,7 @@ struct AuthServiceTests {
     @MainActor
     func registerNormalizesEmail() async throws {
         try await TestApp.withFresh { app in
-            let dto = RegisterDTO(
+            let dto = RegisterRequest(
                 email: "Asiel@EXAMPLE.com",
                 password: "correcthorsebatterystaple"
             )
@@ -70,7 +70,7 @@ struct AuthServiceTests {
     @MainActor
     func registerFailsOnDuplicate() async throws {
         try await TestApp.withFresh { app in
-            let dto = RegisterDTO(
+            let dto = RegisterRequest(
                 email: "dup@example.com",
                 password: "correcthorsebatterystaple"
             )
@@ -86,7 +86,7 @@ struct AuthServiceTests {
     @MainActor
     func registerRejectsWeakPassword() async throws {
         try await TestApp.withFresh { app in
-            let dto = RegisterDTO(
+            let dto = RegisterRequest(
                 email: "weak@example.com",
                 password: "short"  // below the 12-char default
             )
@@ -101,7 +101,7 @@ struct AuthServiceTests {
     @MainActor
     func registerRejectsMismatchedConfirmation() async throws {
         try await TestApp.withFresh { app in
-            let dto = RegisterDTO(
+            let dto = RegisterRequest(
                 email: "mismatch@example.com",
                 password: "correcthorsebatterystaple",
                 passwordConfirmation: "differentvalue123"
@@ -123,12 +123,12 @@ struct AuthServiceTests {
             let password = "correcthorsebatterystaple"
 
             _ = try await app.security.auth.register(
-                RegisterDTO(email: email, password: password),
+                RegisterRequest(email: email, password: password),
                 on: app.db
             )
 
             let response = try await app.security.auth.login(
-                LoginDTO(email: email, password: password),
+                LoginRequest(email: email, password: password),
                 on: app.db
             )
 
@@ -142,13 +142,13 @@ struct AuthServiceTests {
     func loginFailsWrongPassword() async throws {
         try await TestApp.withFresh { app in
             _ = try await app.security.auth.register(
-                RegisterDTO(email: "wrong@example.com", password: "correcthorsebatterystaple"),
+                RegisterRequest(email: "wrong@example.com", password: "correcthorsebatterystaple"),
                 on: app.db
             )
 
             await #expect(throws: SecurityError.invalidCredentials) {
                 _ = try await app.security.auth.login(
-                    LoginDTO(email: "wrong@example.com", password: "wrong_password_xxxx"),
+                    LoginRequest(email: "wrong@example.com", password: "wrong_password_xxxx"),
                     on: app.db
                 )
             }
@@ -161,7 +161,7 @@ struct AuthServiceTests {
         try await TestApp.withFresh { app in
             await #expect(throws: SecurityError.invalidCredentials) {
                 _ = try await app.security.auth.login(
-                    LoginDTO(email: "nope@example.com", password: "anyvalue1234"),
+                    LoginRequest(email: "nope@example.com", password: "anyvalue1234"),
                     on: app.db
                 )
             }
@@ -173,7 +173,7 @@ struct AuthServiceTests {
     func loginFailsInactiveUser() async throws {
         try await TestApp.withFresh { app in
             let response = try await app.security.auth.register(
-                RegisterDTO(email: "inactive@example.com", password: "correcthorsebatterystaple"),
+                RegisterRequest(email: "inactive@example.com", password: "correcthorsebatterystaple"),
                 on: app.db
             )
 
@@ -182,7 +182,7 @@ struct AuthServiceTests {
 
             await #expect(throws: SecurityError.invalidCredentials) {
                 _ = try await app.security.auth.login(
-                    LoginDTO(email: "inactive@example.com", password: "correcthorsebatterystaple"),
+                    LoginRequest(email: "inactive@example.com", password: "correcthorsebatterystaple"),
                     on: app.db
                 )
             }
@@ -199,11 +199,11 @@ struct AuthServiceTests {
             }
 
             _ = try await app.security.auth.register(
-                RegisterDTO(email: "event@example.com", password: "correcthorsebatterystaple"),
+                RegisterRequest(email: "event@example.com", password: "correcthorsebatterystaple"),
                 on: app.db
             )
             _ = try await app.security.auth.login(
-                LoginDTO(email: "event@example.com", password: "correcthorsebatterystaple"),
+                LoginRequest(email: "event@example.com", password: "correcthorsebatterystaple"),
                 on: app.db
             )
 
@@ -219,12 +219,12 @@ struct AuthServiceTests {
     func refreshRotatesTokens() async throws {
         try await TestApp.withFresh { app in
             let initial = try await app.security.auth.register(
-                RegisterDTO(email: "refresh@example.com", password: "correcthorsebatterystaple"),
+                RegisterRequest(email: "refresh@example.com", password: "correcthorsebatterystaple"),
                 on: app.db
             )
 
             let refreshed = try await app.security.auth.refresh(
-                RefreshDTO(refreshToken: initial.refreshToken),
+                RefreshRequest(refreshToken: initial.refreshToken),
                 on: app.db
             )
 
@@ -235,7 +235,7 @@ struct AuthServiceTests {
             // Old refresh token no longer works.
             await #expect(throws: SecurityError.self) {
                 _ = try await app.security.auth.refresh(
-                    RefreshDTO(refreshToken: initial.refreshToken),
+                    RefreshRequest(refreshToken: initial.refreshToken),
                     on: app.db
                 )
             }
@@ -247,13 +247,13 @@ struct AuthServiceTests {
     func refreshRejectsAccessToken() async throws {
         try await TestApp.withFresh { app in
             let tokens = try await app.security.auth.register(
-                RegisterDTO(email: "wrongkind@example.com", password: "correcthorsebatterystaple"),
+                RegisterRequest(email: "wrongkind@example.com", password: "correcthorsebatterystaple"),
                 on: app.db
             )
 
             await #expect(throws: SecurityError.tokenInvalid) {
                 _ = try await app.security.auth.refresh(
-                    RefreshDTO(refreshToken: tokens.accessToken),  // wrong kind!
+                    RefreshRequest(refreshToken: tokens.accessToken),  // wrong kind!
                     on: app.db
                 )
             }
@@ -270,20 +270,20 @@ struct AuthServiceTests {
             }
 
             let initial = try await app.security.auth.register(
-                RegisterDTO(email: "reuse@example.com", password: "correcthorsebatterystaple"),
+                RegisterRequest(email: "reuse@example.com", password: "correcthorsebatterystaple"),
                 on: app.db
             )
 
             // First refresh consumes the token (now revoked).
             _ = try await app.security.auth.refresh(
-                RefreshDTO(refreshToken: initial.refreshToken),
+                RefreshRequest(refreshToken: initial.refreshToken),
                 on: app.db
             )
 
             // Replaying the same refresh token is the reuse scenario.
             await #expect(throws: SecurityError.tokenReuseDetected) {
                 _ = try await app.security.auth.refresh(
-                    RefreshDTO(refreshToken: initial.refreshToken),
+                    RefreshRequest(refreshToken: initial.refreshToken),
                     on: app.db
                 )
             }
@@ -300,7 +300,7 @@ struct AuthServiceTests {
     func logoutUserRevokesAll() async throws {
         try await TestApp.withFresh { app in
             let tokens = try await app.security.auth.register(
-                RegisterDTO(email: "logout@example.com", password: "correcthorsebatterystaple"),
+                RegisterRequest(email: "logout@example.com", password: "correcthorsebatterystaple"),
                 on: app.db
             )
 
@@ -314,7 +314,7 @@ struct AuthServiceTests {
             // Refresh too.
             await #expect(throws: SecurityError.self) {
                 _ = try await app.security.auth.refresh(
-                    RefreshDTO(refreshToken: tokens.refreshToken),
+                    RefreshRequest(refreshToken: tokens.refreshToken),
                     on: app.db
                 )
             }
@@ -332,13 +332,13 @@ struct AuthServiceTests {
             let newPassword = "newpasswordvalue123"
 
             let initial = try await app.security.auth.register(
-                RegisterDTO(email: email, password: oldPassword),
+                RegisterRequest(email: email, password: oldPassword),
                 on: app.db
             )
 
             let user = try await app.security.users.require(id: initial.userID!, on: app.db)
             try await app.security.auth.changePassword(
-                ChangePasswordDTO(
+                ChangePasswordRequest(
                     currentPassword: oldPassword,
                     newPassword: newPassword
                 ),
@@ -349,14 +349,14 @@ struct AuthServiceTests {
             // Old password no longer works.
             await #expect(throws: SecurityError.invalidCredentials) {
                 _ = try await app.security.auth.login(
-                    LoginDTO(email: email, password: oldPassword),
+                    LoginRequest(email: email, password: oldPassword),
                     on: app.db
                 )
             }
 
             // New password works.
             _ = try await app.security.auth.login(
-                LoginDTO(email: email, password: newPassword),
+                LoginRequest(email: email, password: newPassword),
                 on: app.db
             )
 
@@ -371,7 +371,7 @@ struct AuthServiceTests {
     func changePasswordRequiresCurrent() async throws {
         try await TestApp.withFresh { app in
             let tokens = try await app.security.auth.register(
-                RegisterDTO(email: "currentpw@example.com", password: "correcthorsebatterystaple"),
+                RegisterRequest(email: "currentpw@example.com", password: "correcthorsebatterystaple"),
                 on: app.db
             )
 
@@ -379,7 +379,7 @@ struct AuthServiceTests {
 
             await #expect(throws: SecurityError.invalidCredentials) {
                 try await app.security.auth.changePassword(
-                    ChangePasswordDTO(
+                    ChangePasswordRequest(
                         currentPassword: "wrong_old_password",
                         newPassword: "anotherstrongvalue1"
                     ),

@@ -8,7 +8,7 @@
 import Vapor
 
 /// Request body for the login endpoint.
-public struct LoginDTO: Content, Sendable {
+public struct LoginRequest: Content, Sendable {
 
     /// User's login email.
     public let email: String
@@ -24,7 +24,7 @@ public struct LoginDTO: Content, Sendable {
 
 // MARK: - Validatable
 
-extension LoginDTO: Validatable {
+extension LoginRequest: Validatable {
 
     public static func validations(_ validations: inout Validations) {
         validations.add("email", as: String.self, is: .email)

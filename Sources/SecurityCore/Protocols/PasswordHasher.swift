@@ -14,7 +14,7 @@ import Foundation
 ///
 /// Conformance to `Sendable` is required because the hasher is stored on
 /// `Application` and accessed from concurrent request handlers.
-public protocol PasswordHasher: Sendable {
+public protocol SecurityPasswordHasher: Sendable {
 
     /// Stable identifier for this hashing algorithm (e.g. `"bcrypt"`,
     /// `"argon2id"`). Stored alongside the hash so that future migrations
@@ -47,7 +47,7 @@ public protocol PasswordHasher: Sendable {
 
 // MARK: - Optional rehash check
 
-public extension PasswordHasher {
+public extension SecurityPasswordHasher {
 
     /// Whether an existing hash should be regenerated (e.g. because cost
     /// parameters have increased or the algorithm has been upgraded).

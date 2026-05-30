@@ -11,15 +11,4 @@ func seedRolesAndPermissions(app: Application) async throws {
     try await app.security.permissions.create(name: "posts.update", on: app.db)
     try await app.security.permissions.create(name: "posts.delete", on: app.db)
     try await app.security.permissions.create(name: "users.manage", on: app.db)
-
-    for perm in ["posts.create", "posts.read", "posts.update", "posts.delete", "users.manage"] {
-        try await app.security.roles.attach(permission: perm, to: adminRole, on: app.db)
-    }
-    for perm in ["posts.create", "posts.read", "posts.update"] {
-        try await app.security.roles.attach(permission: perm, to: editorRole, on: app.db)
-    }
-    try await app.security.roles.attach(permission: "posts.read", to: viewerRole, on: app.db)
-
-    let user = try await app.security.users.find(email: "admin@example.com", on: app.db)
-    try await app.security.roles.assign(role: adminRole, to: user, on: app.db)
 }

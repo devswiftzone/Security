@@ -62,7 +62,7 @@ public extension Application {
         ///
         /// Accessing this property before a hasher has been registered is
         /// a programmer error and will trap.
-        public var passwordHasher: PasswordHasher {
+        public var passwordHasher: SecurityPasswordHasher {
             get {
                 guard let hasher = application.storage[PasswordHasherKey.self] else {
                     fatalError(
@@ -130,7 +130,7 @@ public extension Application {
         }
 
         private struct PasswordHasherKey: StorageKey {
-            typealias Value = PasswordHasher
+            typealias Value = SecurityPasswordHasher
         }
 
         private struct TokenGeneratorKey: StorageKey {

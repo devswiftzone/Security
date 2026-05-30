@@ -8,19 +8,19 @@
     @Section(title: "Create Roles and Permissions") {
         @Steps {
             @Step {
-                Create the roles your app needs (admin, editor, viewer):
-                @Code(name: "seed.swift", file: "seed-roles.swift")
+                Create the roles your application needs. Each role is a named collection of permissions.
+                @Code(name: "seed.swift", file: "seed-1.swift")
             }
             @Step {
-                Create the permissions your app needs:
-                @Code(name: "seed.swift", file: "seed-roles.swift")
+                Create fine-grained permissions. These are the individual access rights you will attach to roles.
+                @Code(name: "seed.swift", file: "seed-2.swift")
             }
             @Step {
-                Attach permissions to roles:
-                @Code(name: "seed.swift", file: "seed-roles.swift")
+                Attach permissions to roles. The admin role gets everything; editor and viewer get progressively fewer rights.
+                @Code(name: "seed.swift", file: "seed-3.swift")
             }
             @Step {
-                Assign roles to users:
+                Assign a role to a user. From now on, that user inherits all permissions of the role.
                 @Code(name: "seed.swift", file: "seed-roles.swift")
             }
         }
@@ -29,15 +29,15 @@
     @Section(title: "Protect Routes with Middleware") {
         @Steps {
             @Step {
-                Use ``RequirePermission`` middleware to gate routes by permission:
-                @Code(name: "routes.swift", file: "rbac-routes.swift")
+                Use ``PermissionMiddleware`` to gate a route group on a specific permission. Requests without that permission receive a 403.
+                @Code(name: "routes.swift", file: "rbac-routes-1.swift")
             }
             @Step {
-                Use ``RequireRole`` to check for specific roles:
-                @Code(name: "routes.swift", file: "rbac-routes.swift")
+                Use ``RoleMiddleware`` to restrict an entire route group to users with a specific role.
+                @Code(name: "routes.swift", file: "rbac-routes-2.swift")
             }
             @Step {
-                Use the helper methods on `req.security` for ad-hoc checks:
+                Use `req.security.require(permission:)` and `req.security.can(_:)` for inline checks inside a handler.
                 @Code(name: "routes.swift", file: "rbac-routes.swift")
             }
         }
@@ -46,12 +46,12 @@
     @Section(title: "Create a Custom Authorization Policy") {
         @Steps {
             @Step {
-                Define a policy that checks if a user owns a resource:
+                Implement ``AuthorizationPolicy`` to express complex, reusable authorization logic — here, checking whether the authenticated user owns a post.
                 @Code(name: "policies.swift", file: "custom-policy.swift")
             }
             @Step {
-                Use the policy in your route handler:
-                @Code(name: "routes.swift", file: "custom-policy.swift")
+                Apply the policy in a route handler with `req.security.require(_:)`. If `evaluate` returns false, the request is rejected with a 403.
+                @Code(name: "routes.swift", file: "custom-policy-route.swift")
             }
         }
     }
@@ -59,7 +59,7 @@
     @Section(title: "Compose Policies") {
         @Steps {
             @Step {
-                Combine policies using `&&` and `||` operators:
+                Combine policies with `&&` and `||`. SecurityKit evaluates them lazily — `||` short-circuits on the first grant, `&&` short-circuits on the first denial.
                 @Code(name: "routes.swift", file: "compose-policies.swift")
             }
         }
@@ -67,41 +67,53 @@
 
     @Assessments {
         @MultipleChoice {
-            What's the difference between a Role and a Permission?
+            What is the relationship between a Role and a Permission?
 
-            @Choice("A role is a group of permissions; a permission is a fine-grained access right", isCorrect: true) {
-                @Justification {
-                    Roles group multiple permissions together for easier management.
+            @Choice(isCorrect: true) {
+                A role is a named collection of permissions; a permission is a fine-grained access right.
+
+                @Justification(reaction: "Correct!") {
+                    Grouping permissions into roles makes it easy to grant and revoke many rights at once.
                 }
             }
-            @Choice("They are the same thing with different names", isCorrect: false) {
-                @Justification {
-                    Roles and permissions serve different purposes in RBAC.
+            @Choice(isCorrect: false) {
+                They are the same concept with different names.
+
+                @Justification(reaction: "Not quite.") {
+                    Roles and permissions serve different purposes: roles group permissions, permissions define individual actions.
                 }
             }
-            @Choice("A permission is a group of roles", isCorrect: false) {
-                @Justification {
-                    That's backwards — roles group permissions, not the other way around.
+            @Choice(isCorrect: false) {
+                A permission is a collection of roles.
+
+                @Justification(reaction: "That's backwards.") {
+                    Roles contain permissions, not the other way around.
                 }
             }
         }
 
         @MultipleChoice {
-            Which protocol should you implement for custom authorization logic?
+            Which protocol do you implement to write custom authorization logic?
 
-            @Choice("AuthorizationPolicy", isCorrect: true) {
-                @Justification {
-                    Implement ``AuthorizationPolicy`` with an `evaluate(_:)` method.
+            @Choice(isCorrect: true) {
+                ``AuthorizationPolicy``
+
+                @Justification(reaction: "Correct!") {
+                    Implement `evaluate(_:) async throws -> Bool` to express any authorization rule you need.
                 }
             }
-            @Choice("AuthServiceProtocol", isCorrect: false) {
-                @Justification {
-                    That's for authentication (login, register), not authorization.
+            @Choice(isCorrect: false) {
+                ``AuthServiceProtocol``
+
+                @Justification(reaction: "Not quite.") {
+                    `AuthServiceProtocol` handles authentication flows (login, register), not authorization decisions.
                 }
             }
-            @Choice("SecurityUser", isCorrect: false) {
-                @Justification {
-                    That's for user model conformance, not authorization logic.
+            @Choice(isCorrect: false) {
+                ``SecurityUser``
+
+                @Justification(reaction: "Not quite.") {
+                    `SecurityUser` defines the user model contract, not authorization logic.
                 }
             }
         }

@@ -23,7 +23,7 @@ public protocol AuthServiceProtocol: Sendable {
     ///
     /// - Throws: `userAlreadyExists`, `passwordTooWeak`, `invalidEmail`.
     func register(
-        _ dto: RegisterDTO,
+        _ dto: RegisterRequest,
         on db: Database
     ) async throws -> TokenResponse
 
@@ -31,7 +31,7 @@ public protocol AuthServiceProtocol: Sendable {
     ///
     /// - Throws: `invalidCredentials`, `userInactive`.
     func login(
-        _ dto: LoginDTO,
+        _ dto: LoginRequest,
         on db: Database
     ) async throws -> TokenResponse
 
@@ -40,7 +40,7 @@ public protocol AuthServiceProtocol: Sendable {
     ///
     /// - Throws: `tokenInvalid`, `tokenExpired`, `tokenReuseDetected`.
     func refresh(
-        _ dto: RefreshDTO,
+        _ dto: RefreshRequest,
         on db: Database
     ) async throws -> TokenResponse
 
@@ -64,7 +64,7 @@ public protocol AuthServiceProtocol: Sendable {
     /// - Throws: `invalidCredentials` if `currentPassword` is wrong,
     ///   `passwordTooWeak` if `newPassword` fails policy.
     func changePassword(
-        _ dto: ChangePasswordDTO,
+        _ dto: ChangePasswordRequest,
         for user: User,
         on db: Database
     ) async throws

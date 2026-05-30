@@ -28,7 +28,7 @@ public struct FluentAuthService: AuthServiceProtocol, Sendable {
     // MARK: - Register
 
     public func register(
-        _ dto: RegisterDTO,
+        _ dto: RegisterRequest,
         on db: Database
     ) async throws -> TokenResponse {
         // Optional password confirmation check.
@@ -81,7 +81,7 @@ public struct FluentAuthService: AuthServiceProtocol, Sendable {
     // MARK: - Login
 
     public func login(
-        _ dto: LoginDTO,
+        _ dto: LoginRequest,
         on db: Database
     ) async throws -> TokenResponse {
         let user = try await application.security.users
@@ -132,7 +132,7 @@ public struct FluentAuthService: AuthServiceProtocol, Sendable {
     // MARK: - Refresh
 
     public func refresh(
-        _ dto: RefreshDTO,
+        _ dto: RefreshRequest,
         on db: Database
     ) async throws -> TokenResponse {
         let tokens = application.security.tokens
@@ -224,7 +224,7 @@ public struct FluentAuthService: AuthServiceProtocol, Sendable {
     // MARK: - Change password
 
     public func changePassword(
-        _ dto: ChangePasswordDTO,
+        _ dto: ChangePasswordRequest,
         for user: User,
         on db: Database
     ) async throws {

@@ -11,3 +11,12 @@ struct CanEditPost: AuthorizationPolicy {
             || (try await user.permissions(on: req.db)).contains("posts.edit.any")
     }
 }
+
+app.put("posts", ":id") { req async throws -> Post in
+    let postID = try req.parameters.require("id", UUID.self)
+    try await req.security.require(CanEditPost(postID: postID))
+
+    let updatedPost = try req.content.decode(Post.self)
+    // Save logic...
+    return updatedPost
+}

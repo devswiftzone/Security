@@ -12,7 +12,7 @@ import Vapor
 /// Requires the current password to prevent abuse if a session token is
 /// stolen but the attacker doesn't know the password. Always require this
 /// even when the user is authenticated.
-public struct ChangePasswordDTO: Content, Sendable {
+public struct ChangePasswordRequest: Content, Sendable {
 
     /// The user's current password.
     public let currentPassword: String
@@ -42,7 +42,7 @@ public struct ChangePasswordDTO: Content, Sendable {
 
 // MARK: - Validatable
 
-extension ChangePasswordDTO: Validatable {
+extension ChangePasswordRequest: Validatable {
 
     public static func validations(_ validations: inout Validations) {
         validations.add("current_password", as: String.self, is: !.empty)

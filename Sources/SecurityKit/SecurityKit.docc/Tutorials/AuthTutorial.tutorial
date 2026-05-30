@@ -8,11 +8,11 @@
     @Section(title: "Configure the Package") {
         @Steps {
             @Step {
-                Open your `Package.swift` and add the dependency:
+                Open your `Package.swift` and add the SecurityKit dependency.
                 @Code(name: "Package.swift", file: "add-dependency.swift")
             }
             @Step {
-                Create or update `configure.swift` with security setup:
+                Create or update `configure.swift`. Call `app.security.useFluent()` to register the password hasher, token generator, and all migrations.
                 @Code(name: "configure.swift", file: "configure-security.swift")
             }
         }
@@ -21,15 +21,15 @@
     @Section(title: "Create Auth Routes") {
         @Steps {
             @Step {
-                Create the register endpoint. This accepts a ``RegisterDTO`` and returns a ``TokenResponse``.
-                @Code(name: "routes.swift", file: "auth-routes.swift")
+                Add a registration endpoint. It accepts a ``RegisterDTO`` and returns a ``TokenResponse`` with an access and refresh token.
+                @Code(name: "routes.swift", file: "auth-routes-1.swift")
             }
             @Step {
-                Create the login endpoint. This accepts a ``LoginDTO`` and validates credentials.
-                @Code(name: "routes.swift", file: "auth-routes.swift")
+                Add a login endpoint. It accepts a ``LoginDTO``, verifies credentials, and returns tokens.
+                @Code(name: "routes.swift", file: "auth-routes-2.swift")
             }
             @Step {
-                Protect routes with ``BearerTokenMiddleware``. Only requests with a valid token can access these.
+                Group the remaining endpoints behind ``BearerTokenMiddleware``. Only requests with a valid access token can reach these routes.
                 @Code(name: "routes.swift", file: "auth-routes.swift")
             }
         }
@@ -38,15 +38,15 @@
     @Section(title: "Verify It Works") {
         @Steps {
             @Step {
-                Register a new user:
+                Register a new user with curl. The response contains your access and refresh tokens.
                 @Code(name: "Terminal", file: "curl-register.sh")
             }
             @Step {
-                Login with the registered credentials and save the token:
+                Log in with the same credentials to receive a fresh token pair.
                 @Code(name: "Terminal", file: "curl-login.sh")
             }
             @Step {
-                Use the access token to access protected routes:
+                Use the access token in the `Authorization` header to reach a protected route.
                 @Code(name: "Terminal", file: "curl-protected.sh")
             }
         }
@@ -54,41 +54,53 @@
 
     @Assessments {
         @MultipleChoice {
-            Which middleware protects routes with Bearer token authentication?
+            Which middleware validates the Bearer token and protects a route group?
 
-            @Choice("BearerTokenMiddleware", isCorrect: true) {
-                @Justification {
-                    This middleware validates the Bearer token from the Authorization header.
+            @Choice(isCorrect: true) {
+                `BearerTokenMiddleware`
+
+                @Justification(reaction: "Correct!") {
+                    `BearerTokenMiddleware` reads the `Authorization: Bearer <token>` header and authenticates the request.
                 }
             }
-            @Choice("RequirePermission", isCorrect: false) {
-                @Justification {
-                    Permission middleware checks for specific permissions, not token validity.
+            @Choice(isCorrect: false) {
+                `PermissionMiddleware`
+
+                @Justification(reaction: "Not quite.") {
+                    `PermissionMiddleware` checks for a specific permission on an already-authenticated request.
                 }
             }
-            @Choice("RoleMiddleware", isCorrect: false) {
-                @Justification {
-                    Role middleware checks for specific roles, not token validity.
+            @Choice(isCorrect: false) {
+                `RoleMiddleware`
+
+                @Justification(reaction: "Not quite.") {
+                    `RoleMiddleware` checks for a specific role on an already-authenticated request.
                 }
             }
         }
 
         @MultipleChoice {
-            What does the ``AuthServiceProtocol.register(_:on:)`` method return?
+            What does ``AuthServiceProtocol/register(_:on:)`` return on success?
 
-            @Choice("TokenResponse", isCorrect: true) {
-                @Justification {
-                    Register returns a TokenResponse containing both access and refresh tokens.
+            @Choice(isCorrect: true) {
+                `TokenResponse`
+
+                @Justification(reaction: "Correct!") {
+                    `register` issues tokens immediately so the user is logged in right after signing up.
                 }
             }
-            @Choice("User", isCorrect: false) {
-                @Justification {
-                    The user object is not returned directly; tokens are issued immediately.
+            @Choice(isCorrect: false) {
+                `User`
+
+                @Justification(reaction: "Not quite.") {
+                    The user record is created internally, but what is returned to the client is the token pair.
                 }
             }
-            @Choice("HTTPStatus", isCorrect: false) {
-                @Justification {
-                    A status code is not returned; tokens are returned upon successful registration.
+            @Choice(isCorrect: false) {
+                `HTTPStatus`
+
+                @Justification(reaction: "Not quite.") {
+                    A status code alone is not returned; the caller needs the tokens to make authenticated requests.
                 }
             }
         }

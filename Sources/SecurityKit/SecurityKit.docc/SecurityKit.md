@@ -10,7 +10,7 @@ SecurityKit provides a complete authentication and authorization system for Vapo
 - **SecurityFluent**: Fluent-based implementation with models, migrations, and services
 - **SecurityJWT**: JWT-based authentication service
 
-All modules are re-exported through ``SecurityKit``, so ``import SecurityKit`` gives you everything.
+All modules are re-exported through ``SecurityKit``, so `import SecurityKit` gives you everything.
 
 ## Topics
 
@@ -31,7 +31,10 @@ All modules are re-exported through ``SecurityKit``, so ``import SecurityKit`` g
 - ``AuthorizationPolicy``
 - ``RequirePermission``
 - ``RequireRole``
-- ``PolicyOperators``
+- ``RequireAnyRole``
+- ``AndPolicy``
+- ``OrPolicy``
+- ``NotPolicy``
 
 ### Middleware
 - ``BearerTokenMiddleware``
@@ -44,7 +47,7 @@ All modules are re-exported through ``SecurityKit``, so ``import SecurityKit`` g
 - ``RoleServiceProtocol``
 - ``PermissionServiceProtocol``
 - ``TokenServiceProtocol``
-- ``PasswordHasher``
+- ``SecurityPasswordHasher``
 - ``TokenGenerator``
 
 ### Security Configuration

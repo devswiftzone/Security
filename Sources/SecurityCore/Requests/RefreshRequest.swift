@@ -11,7 +11,7 @@ import Vapor
 ///
 /// The client sends the refresh token (NOT the access token) to obtain a
 /// fresh access token plus a rotated refresh token.
-public struct RefreshDTO: Content, Sendable {
+public struct RefreshRequest: Content, Sendable {
 
     /// The refresh token previously issued to the client.
     public let refreshToken: String

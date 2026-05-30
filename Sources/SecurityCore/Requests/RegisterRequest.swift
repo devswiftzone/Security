@@ -8,7 +8,7 @@
 import Vapor
 
 /// Request body for the registration endpoint.
-public struct RegisterDTO: Content, Sendable {
+public struct RegisterRequest: Content, Sendable {
 
     /// User's email. Must be unique across the system.
     public let email: String
@@ -34,7 +34,7 @@ public struct RegisterDTO: Content, Sendable {
 
 // MARK: - Validatable
 
-extension RegisterDTO: Validatable {
+extension RegisterRequest: Validatable {
 
     public static func validations(_ validations: inout Validations) {
         validations.add("email", as: String.self, is: .email)
