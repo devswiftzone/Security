@@ -60,7 +60,10 @@ let package = Package(
         ),
         .testTarget(
             name: "SecurityFluentTests",
-            dependencies: [ "SecurityFluent" ]
+            dependencies: [
+                "SecurityFluent",
+                .product(name: "FluentSQLiteDriver", package: "fluent-sqlite-driver"),
+            ]
         ),
     ],
     swiftLanguageModes: [.v6]
