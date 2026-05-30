@@ -1,6 +1,8 @@
 name: Deploy DocC Documentation
 
 on:
+  push:
+    branches: [main]
   release:
     types: [published]
   workflow_dispatch:
@@ -25,7 +27,7 @@ jobs:
           swift-version: "6.3.0"
       - name: Build DocC
         run: |
-          swift build --target SecurityKit \
+          swift build \
             -Xswiftc -emit-symbol-graph \
             -Xswiftc -emit-symbol-graph-dir \
             -Xswiftc .build/symbol-graphs
