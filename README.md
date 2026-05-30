@@ -49,10 +49,13 @@ dependencies: [
 
 ### 1. Configure in `configure.swift`
 
-```swiftimport Vapor
+```swift
+import Vapor
 import Fluent
 import FluentPostgresDriver
-import Securitypublic func configure(_ app: Application) async throws {
+import Securitypublic 
+
+func configure(_ app: Application) async throws {
 // Database
 app.databases.use(.postgres(/* ... */), as: .psql)// Security configuration
 app.security.configuration = .init(
@@ -67,8 +70,11 @@ try routes(app)
 
 ### 2. Add authentication routes
 
-```swiftimport Vapor
-import Securityfunc routes(_ app: Application) throws {
+```swift
+import Vapor
+import Security
+
+func routes(_ app: Application) throws {
 // Public
 app.post("auth", "register") { req async throws -> TokenResponse in
 let dto = try req.content.decode(RegisterDTO.self)
@@ -89,7 +95,8 @@ admin.delete("users", ":id") { req async throws -> HTTPStatus in
 
 ### 3. Seed initial roles and permissions
 
-```swiftlet adminRole = try await app.security.roles.create(name: "admin", on: app.db)
+```swift 
+let adminRole = try await app.security.roles.create(name: "admin", on: app.db)
 try await app.security.permissions.create(name: "users.delete", on: app.db)
 try await app.security.roles.attach(permission: "users.delete", to: adminRole, on: app.db)
 
@@ -121,18 +128,21 @@ Import only what you need to keep your binary lean.
 
 ### Checking permissions in a route
 
-```swiftapp.get("posts", ":id") { req async throws -> Post in
+```swift
+app.get("posts", ":id") { req async throws -> Post in
 try await req.security.require(permission: "posts.read")
 // ...
 }
 
 ### Checking roles
 
-```swifttry await req.security.require(role: "admin")
+```swift
+try await req.security.require(role: "admin")
 
 ### Custom authorization policies
 
-```swiftstruct CanEditPost: AuthorizationPolicy {
+```swift
+struct CanEditPost: AuthorizationPolicy {
 let postID: UUID
 func evaluate(_ req: Request) async throws -> Bool {
 let user = try req.auth.require(User.self)
@@ -144,14 +154,16 @@ return post?.authorID == user.id
 
 ### Custom password hasher
 
-```swiftstruct Argon2Hasher: PasswordHasher {
+```swift
+  struct Argon2Hasher: PasswordHasher {
 func hash(_ password: String) throws -> String { /* ... / }
 func verify(_ password: String, against hash: String) throws -> Bool { / ... */ }
 }app.security.passwordHasher = Argon2Hasher()
 
 ### Subscribing to security events
 
-```swiftapp.security.events.on(.loginFailed) { event in
+```swift
+app.security.events.on(.loginFailed) { event in
 app.logger.warning("Failed login for (event.email) from (event.ip ?? "unknown")")
 }
 
