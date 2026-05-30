@@ -8,31 +8,33 @@ let package = Package(
     platforms: [.macOS(.v13)],
     products: [
         // Products define the executables and libraries a package produces, making them visible to other packages.
-        .library(
-            name: "Security",
-            targets: ["Security"]
-        ),
-        .library(
-            name: "SecurityCore",
-            targets: ["SecurityCore"]
-        ),
+        .library(name: "SecurityKit", targets: ["SecurityKit"]),
+        .library(name: "SecurityCore", targets: ["SecurityCore"]),
+        .library(name: "SecurityFluent", targets: ["SecurityFluent"]),
+        .library(name: "SecurityJWT", targets: ["SecurityJWT"]),
     ],
     dependencies: [
         .package(url: "https://github.com/vapor/vapor.git", from: "4.92.0"),
         .package(url: "https://github.com/vapor/fluent.git", from: "4.9.0"),
+        .package(url: "https://github.com/vapor/fluent-sqlite-driver.git", from: "4.6.0"),
         .package(url: "https://github.com/vapor/jwt.git", from: "5.0.0"),
     ],
     targets: [
         // Targets are the basic building blocks of a package, defining a module or a test suite.
         // Targets can depend on other targets in this package and products from dependencies.
-        .testTarget(
-            name: "SecurityTests",
-            dependencies: ["Security"]
+        .target(
+            name: "SecurityKit",
+            dependencies: [
+                "SecurityCore",
+                "SecurityFluent",
+                "SecurityJWT",
+            ]
         ),
         .target(
             name: "SecurityCore",
             dependencies: [
-                .product(name: "Vapor", package: "vapor")
+                .product(name: "Vapor", package: "vapor"),
+                .product(name: "Fluent", package: "fluent"),
             ]),
         .target(
             name: "SecurityFluent",
@@ -49,17 +51,16 @@ let package = Package(
                 .product(name: "JWT", package: "jwt")
             ]
         ),
-        .target(
-            name: "Security",
+        .testTarget(
+            name: "SecurityCoreTests",
             dependencies: [
                 "SecurityCore",
-                "SecurityFluent",
-                "SecurityJWT",
+                .product(name: "FluentSQLiteDriver", package: "fluent-sqlite-driver"),
             ]
         ),
         .testTarget(
-            name: "SecurityCoreTests",
-            dependencies: [ "SecurityCore" ]
+            name: "SecurityFluentTests",
+            dependencies: [ "SecurityFluent" ]
         ),
     ],
     swiftLanguageModes: [.v6]
